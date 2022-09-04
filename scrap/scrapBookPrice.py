@@ -14,7 +14,9 @@ def scrapBookradar(enter):
     pageCount = resp.json()['pageCount']
     if pageCount > 30: 
         pageCount = 30
+        print(pageCount)
     for i in range(1, pageCount + 1):
+        print(pageCount)
         yield json.loads(requests.get(f'https://bookradar.ru/api/search?q={enter}&page={i}', headers=headers).text)
 
 
