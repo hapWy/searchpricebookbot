@@ -2,64 +2,45 @@ import requests
 import json
 
 
-def encode_cd1251(string):
-    return str(string.encode('windows-1251')).replace("\\x", '%').replace(' ', '+').replace("'", '').upper()[1:]
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.134 Safari/537.36 OPR/89.0.4447.104"
+}
 
 
-def scrapPrice(enter, sites=["chitai-gorod.ru", "book24.ru", "labirint.ru"]):
+# Scraping bookradar
+def scrapBookradar(enter):
     enter = enter.replace(' ', '+')
-
-    headers = {
-        'User-Agent': 'ReqBin Python Client/1.0'
-    }
-
-    # Scraping bookradar
     resp = requests.get(f'https://bookradar.ru/api/search?q={enter}&page=1', headers=headers)
-    pageCount = resp.json()["pageCount"]
-    for i in range(1, pageCount + 1):
-        with open(f'scrap/cache/bookradar_{i}.json', 'w', encoding='UTF-8') as file:
-            json.dump(
-                json.loads(requests.get(f'https://bookradar.ru/api/search?q={enter}&page={i}', headers=headers).text),
-                file,
-                indent=4,
-                ensure_ascii=False)
+    dictJSON = resp.json()
+    for i in range(1, dictJSON["pageCount"] + 1):
+        yield json.loads(requests.get(f'https://bookradar.ru/api/search?q={enter}&page={i}', headers=headers).text)
 
-    unreadyScrap = []
-    for i in range(1, pageCount + 1):
-        with open(f'scrap/cache/bookradar_{i}.json', 'r', encoding='UTF-8') as file:
-            text = json.load(file)
-            for j in text["offers"]:
-                if j['site'] in sites:
-                    if j not in unreadyScrap:
-                        unreadyScrap.append(j)
 
-    for i in sites:
-        arr = []
-        with open(f'scrap/cache/{i}_offers.json', 'w', encoding='UTF-8') as file:
-            for j in unreadyScrap:
-                if j['site'] == i:
-                    arr.append(j)
-            json.dump(arr, file, indent=4, ensure_ascii=False)
+# Scraping FindBook
+def scrapPrice(enter):
+    cg = []
+    lab = []
+    bk24 = []
+
+    sites = ["chitai-gorod.ru", "book24.ru", "labirint.ru"]
+    for i in scrapBookradar(enter):
+        for j in i["offers"]:
+            if j['site'] in sites and j not in cg and j not in lab and j not in bk24:
+                if j['site'] == "chitai-gorod.ru":
+                    cg.append(j)
+                if j['site'] == "book24.ru":
+                    bk24.append(j)
+                if j['site'] == 'labirint.ru':
+                    lab.append(j)
 
     finn = []
+    priceCg = [i['price'] for i in cg]
+    finn = [i for i in cg if i['price'] == min(priceCg)]
 
-    for i in sites:
-        price = []
-        with open(f'scrap/cache/{i}_Price.json', 'w', encoding='UTF-8') as fprice:
-            with open(f'scrap/cache/{i}_offers.json', 'r', encoding='UTF-8') as foffers:
-                text = json.load(foffers)
-                for j in text:
-                    price.append(j['price'])
-            json.dump(price, fprice, indent=4, ensure_ascii=False)
-    for i in sites:
-        with open(f'scrap/cache/{i}_offers.json', 'r', encoding='UTF-8') as foffers:
-            with open(f'scrap/cache/{i}_Price.json', 'r', encoding='UTF-8') as fprice:
-                offers = json.load(foffers)
-                price = json.load(fprice)
-                for j in offers:
-                    if j['price'] == min(price):
-                        finn.append(j)
+    priceLab = [i['price'] for i in lab]
+    finn += [i for i in lab if i['price'] == min(priceLab)]
 
-    print('OK')
+    priceBk24 = [i['price'] for i in bk24]
+    finn += [i for i in bk24 if i['price'] == min(priceBk24)]
 
     return finn
