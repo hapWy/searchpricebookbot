@@ -1,4 +1,2 @@
 aiogram
-json
-csv
 requests
