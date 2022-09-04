@@ -24,6 +24,7 @@ async def all_commands(message : types.Message):
         await message.answer('Введите запрос( Выводится только одна книга с одного сайта( Подробнее - /help ))')
     else:
         msd = await message.answer('Запрос обрабатывается. Пожалуйста, подождите')
+        print(f'{message.from_user.username} - {message.text}')
         answ = scrapPrice(message.text)
         await msd.delete()
         if answ == []:
