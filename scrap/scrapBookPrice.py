@@ -11,8 +11,10 @@ headers = {
 def scrapBookradar(enter):
     enter = enter.replace(' ', '+')
     resp = requests.get(f'https://bookradar.ru/api/search?q={enter}&page=1', headers=headers)
-    dictJSON = resp.json()
-    for i in range(1, dictJSON["pageCount"] + 1):
+    pageCount = resp.json()['pageCount']
+    if pageCount > 50: 
+        pageCount = 50
+    for i in range(1, pageCount + 1):
         yield json.loads(requests.get(f'https://bookradar.ru/api/search?q={enter}&page={i}', headers=headers).text)
 
 
